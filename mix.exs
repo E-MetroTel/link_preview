@@ -1,7 +1,7 @@
 defmodule LinkPreview.Mixfile do
   use Mix.Project
 
-  @version "1.0.2"
+  @version "1.0.3"
 
   def project do
     [
@@ -13,7 +13,7 @@ defmodule LinkPreview.Mixfile do
         extras: ["README.md", "CHANGELOG.md"]
       ],
       elixir: "~> 1.3",
-      elixirc_paths: elixirc_paths(Mix.env),
+      elixirc_paths: elixirc_paths(Mix.env()),
       homepage_url: "https://appunite.com",
       name: "Link Preview",
       package: package(),
@@ -46,32 +46,32 @@ defmodule LinkPreview.Mixfile do
         "GitHub" => "https://github.com/appunite/link_preview",
         "Sponsor" => "https://appunite.com"
       }
-   ]
+    ]
   end
 
   def application do
-    [applications: applications(Mix.env)]
+    [applications: applications(Mix.env())]
   end
 
-  def applications(:all),  do: [:floki, :inets, :logger, :tesla]
+  def applications(:all), do: [:floki, :inets, :logger, :tesla]
   def applications(:test), do: applications(:all) ++ [:httparrot]
-  def applications(_),     do: applications(:all)
+  def applications(_), do: applications(:all)
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(_),     do: ["lib"]
+  defp elixirc_paths(_), do: ["lib"]
 
   defp deps do
     [
-      #required
+      # required
       {:floki, "~> 0.10.0"},
-      {:tesla, "~> 0.7.1"},
+      {:tesla, "~> 1.2"},
 
-      #optional
+      # optional
       {:html_entities, "~> 0.2", optional: true},
       {:mogrify, "~> 0.4.0", optional: true},
-      {:tempfile, "~> 0.1.0", optional: true},
+      {:tempfile, github: "E-MetroTel/tempfile", optional: true},
 
-      #testing/docs
+      # testing/docs
       {:excoveralls, "~> 0.6", only: :test},
       {:ex_doc, "~> 0.12", only: :dev},
       {:httparrot, "~> 0.5.0", only: :test},
@@ -81,7 +81,7 @@ defmodule LinkPreview.Mixfile do
 
   defp aliases do
     [
-      "test": ["test --exclude excluded"]
+      test: ["test --exclude excluded"]
     ]
   end
 end

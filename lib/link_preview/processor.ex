@@ -8,17 +8,25 @@ defmodule LinkPreview.Processor do
   @doc """
     Takes url and returns result of processing.
   """
-  @spec call(String.t) :: LinkPreview.success | LinkPreview.failure
+  @spec call(String.t()) :: LinkPreview.success() | LinkPreview.failure()
   def call(url) do
     case Requests.head(url) do
-      {:ok, %Tesla.Env{status: 200, url: final_url, headers: %{"content-type" => "text/html" <> _}}} ->
-        parsers = Application.get_env(:link_preview, :parsers, [Opengraph, Html])
+      {:ok, %Tesla.Env{status: 200, url: final_url} = env} ->
+        cond do
+          content_type?(env, ~r/^text\/html/) ->
+            parsers = Application.get_env(:link_preview, :parsers, [Opengraph, Html])
+            do_call(url, final_url, parsers)
 
-        do_call(url, final_url, parsers)
-      {:ok, %Tesla.Env{status: 200, url: final_url, headers: %{"content-type" => "image/" <> _}}} ->
-        do_image_call(url, final_url, [Image])
+          content_type?(env, ~r/^image\//) ->
+            do_image_call(url, final_url, [Image])
+
+          true ->
+            %LinkPreview.Error{origin: LinkPreview, message: "unsupported response"}
+        end
+
       {:ok, _} ->
         %LinkPreview.Error{origin: LinkPreview, message: "unsupported response"}
+
       {:error, %{__struct__: origin, message: message}} ->
         %LinkPreview.Error{origin: origin, message: message}
     end
@@ -26,13 +34,27 @@ defmodule LinkPreview.Processor do
   catch
     _, %{__struct__: origin, message: message} ->
       {:error, %LinkPreview.Error{origin: origin, message: message}}
+
+    _, %{__struct__: origin, reason: message} ->
+      {:error, %LinkPreview.Error{origin: origin, message: message}}
+
     _, _ ->
       {:error, %LinkPreview.Error{origin: :unknown}}
   end
 
+  def content_type?(env, type) do
+    case Tesla.get_headers(env, "content-type") do
+      headers when is_list(headers) ->
+        Enum.any?(headers, &(&1 =~ type))
+
+      _ ->
+        false
+    end
+  end
+
   defp to_tuple(result) do
     case result do
-      %Page{}              -> {:ok, result}
+      %Page{} -> {:ok, result}
       %LinkPreview.Error{} -> {:error, result}
     end
   end
@@ -49,6 +71,7 @@ defmodule LinkPreview.Processor do
         url
         |> Page.new(final_url)
         |> collect_data(parsers, body)
+
       _ ->
         %LinkPreview.Error{origin: LinkPreview, message: "unsupported response"}
     end
@@ -85,5 +108,4 @@ defmodule LinkPreview.Processor do
       {:halt, page}
     end
   end
-
 end
