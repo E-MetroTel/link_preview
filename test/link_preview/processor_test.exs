@@ -11,7 +11,7 @@ defmodule LinkPreview.ProcessorTest do
       with_mock LinkPreview.Requests, [:passthrough],
         get: fn _ -> {:ok, %Tesla.Env{status: 200, body: @opengraph}} end,
         head: fn _ ->
-          {:ok, %Tesla.Env{status: 200, headers: %{"content-type" => "text/html"}}}
+          {:ok, %Tesla.Env{status: 200, headers: [{"content-type", "text/html"}]}}
         end do
         Application.put_env(:link_preview, :parsers, [Opengraph, Html, MissingOne])
 
@@ -47,7 +47,7 @@ defmodule LinkPreview.ProcessorTest do
       with_mock LinkPreview.Requests, [:passthrough],
         get: fn _ -> {:error, %Tesla.Error{reason: "adapter error: :econnrefused"}} end,
         head: fn _ ->
-          {:ok, %Tesla.Env{status: 200, headers: %{"content-type" => "text/html"}}}
+          {:ok, %Tesla.Env{status: 200, headers: [{"content-type", "text/html"}]}}
         end do
         Application.put_env(:link_preview, :parsers, [Opengraph, Html, MissingOne])
 
