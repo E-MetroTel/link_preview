@@ -2,7 +2,7 @@ defmodule LinkPreview.Parsers.Opengraph do
   @moduledoc """
     Parser implementation based on opengraph.
   """
-  alias LinkPreview.Page
+  alias LinkPreview.{Page, Parsers.Util}
 
   use LinkPreview.Parsers.Basic
 
@@ -17,7 +17,7 @@ defmodule LinkPreview.Parsers.Opengraph do
   def title(page, body) do
     title =
       body
-      |> Floki.parse()
+      |> Util.floki_parse()
       |> Floki.find("meta[property^=\"og:title\"]")
       |> Floki.attribute("content")
       |> List.first()
@@ -37,7 +37,7 @@ defmodule LinkPreview.Parsers.Opengraph do
   def description(page, body) do
     description =
       body
-      |> Floki.parse()
+      |> Util.floki_parse()
       |> Floki.find("meta[property^=\"og:description\"]")
       |> Floki.attribute("content")
       |> List.first()
@@ -64,14 +64,14 @@ defmodule LinkPreview.Parsers.Opengraph do
   def images(page, body) do
     images =
       body
-      |> Floki.parse()
+      |> Util.floki_parse()
       |> Floki.find("meta[property^=\"og:image\"]")
       |> Floki.attribute("content")
       |> Enum.map(&String.trim(&1))
       |> maybe_force_absolute_url(page)
       |> maybe_force_url_schema
       |> maybe_validate
-      |> Enum.map(&(%{url: &1}))
+      |> Enum.map(&%{url: &1})
 
     %Page{page | images: images}
   end

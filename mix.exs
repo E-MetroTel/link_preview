@@ -50,10 +50,12 @@ defmodule LinkPreview.Mixfile do
   end
 
   def application do
-    [applications: applications(Mix.env())]
+    [extra_applications: applications(Mix.env())]
   end
 
-  def applications(:all), do: [:floki, :inets, :logger, :tesla]
+  def applications(:all),
+    do: [:floki, :inets, :logger, :tesla, :html_entities, :tempfile, :mogrify, :mime]
+
   def applications(:test), do: applications(:all) ++ [:httparrot]
   def applications(_), do: applications(:all)
 
@@ -63,13 +65,13 @@ defmodule LinkPreview.Mixfile do
   defp deps do
     [
       # required
-      {:floki, "~> 0.10.0"},
+      {:floki, "~> 0.0"},
       {:tesla, "~> 1.2"},
 
       # optional
       {:html_entities, "~> 0.2", optional: true},
-      {:mogrify, "~> 0.4.0", optional: true},
-      {:tempfile, github: "E-MetroTel/tempfile", optional: true},
+      {:mogrify, "~> 0.0", optional: true},
+      {:tempfile, github: "E-MetroTel/tempfile", optional: true, branch: "elixir-11"},
 
       # testing/docs
       {:excoveralls, "~> 0.6", only: :test},
