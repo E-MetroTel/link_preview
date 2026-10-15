@@ -57,12 +57,27 @@ defmodule LinkPreview.Parsers.HtmlTest do
       assert Enum.count(images) == 50
     end
 
-    @tag :excluded
     test "limits images with :filter_small_images" do
-      Application.put_env(:link_preview, :filter_small_images, 1)
+      Application.put_env(:link_preview, :filter_small_images, 0)
 
       images = Html.images(@page, @image_spam).images
       assert Enum.count(images) == 50
+    end
+
+    test "boolean image filtering uses the default minimum size" do
+      Application.put_env(:link_preview, :filter_small_images, true)
+      assert Html.images(@page, @image_spam).images == []
+    end
+
+    test "rejects invalid image data despite an image content type" do
+      Application.put_env(:link_preview, :filter_small_images, 0)
+      body = ~s(<img src="#{@httparrot}/response-headers?content-type=image/png">)
+      assert Html.images(@page, body).images == []
+    end
+
+    test "filters images at the minimum dimension" do
+      Application.put_env(:link_preview, :filter_small_images, 1)
+      assert Html.images(@page, @image_spam).images == []
     end
 
     test "pessimistic case" do

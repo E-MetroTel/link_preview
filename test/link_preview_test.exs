@@ -1,6 +1,24 @@
 defmodule LinkPreviewTest do
   use LinkPreview.Case
 
+  test "previews an HTML response using default parsers" do
+    assert {:ok, %LinkPreview.Page{title: title, description: description}} =
+             LinkPreview.create(@httparrot <> "/html")
+
+    assert is_binary(description)
+    assert is_nil(title)
+  end
+
+  test "processor accepts image responses" do
+    assert {:ok, %LinkPreview.Page{images: [_]}} =
+             LinkPreview.Processor.call(@httparrot <> "/image")
+  end
+
+  test "processor rejects unsupported responses" do
+    assert {:error, %LinkPreview.Error{message: "unsupported response"}} =
+             LinkPreview.Processor.call(@httparrot <> "/robots.txt")
+  end
+
   describe "create" do
     test "deletage to processor" do
       url = @httparrot <> "/image"

@@ -34,8 +34,8 @@ defmodule LinkPreview.Page do
 
   defp website_url(final_url) do
     final_url
-    |> remove_suffix
-    |> remove_prefix
+    |> remove_suffix()
+    |> remove_prefix()
   end
 
   defp remove_suffix(url) do

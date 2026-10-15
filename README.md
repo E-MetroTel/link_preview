@@ -18,13 +18,16 @@ LinkPreview is a package that tries to receive meta information from given http(
   end
   ```
 
-2. For Elixir < 1.4 ensure link_preview is started before your application:
+## Development
 
-  ```elixir
-  def application do
-    [applications: [:link_preview]]
-  end
-  ```
+The `.tool-versions` file selects Elixir 1.20.4 and Erlang/OTP 29.1.2.
+Run `mix deps.get`, `mix test`, and `mix coveralls`. Tests use a local
+HTTParrot server on port 8888 and require ImageMagick (`identify`) for image-size
+filtering. Optional Mogrify and Tempfile applications start automatically when
+included by the consuming project.
+
+HTTP requests follow redirects and decompress responses, with a 32 MiB limit
+on decompressed bodies.
 
 ## Example usage
 
