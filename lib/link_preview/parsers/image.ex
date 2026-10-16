@@ -9,7 +9,7 @@ defmodule LinkPreview.Parsers.Image do
   @doc """
     Set page original_url as image_url.
   """
-  def images(page, _body) do
+  def images(%Page{} = page, _body) do
     %Page{page | images: [%{url: page.original_url}]}
   end
 end

@@ -83,13 +83,13 @@ defmodule LinkPreview.Parsers.Util do
   def maybe_validate(urls) do
     cond do
       Application.get_env(:link_preview, :force_images_absolute_url) ->
-        urls |> validate_images
+        urls |> validate_images()
 
       Application.get_env(:link_preview, :force_images_url_schema) ->
-        urls |> validate_images
+        urls |> validate_images()
 
       Application.get_env(:link_preview, :filter_small_images) ->
-        urls |> validate_images
+        urls |> validate_images()
 
       true ->
         urls

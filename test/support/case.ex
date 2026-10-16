@@ -3,7 +3,7 @@ defmodule LinkPreview.Case do
 
   using do
     quote do
-      @httparrot "http://localhost:#{Application.get_env(:httparrot, :http_port)}"
+      @httparrot "http://localhost:#{Application.compile_env(:httparrot, :http_port)}"
 
       @opengraph File.read!("test/support/fixtures/opengraph_example.html")
       @html File.read!("test/support/fixtures/html_example.html")
