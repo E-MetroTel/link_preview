@@ -2,14 +2,26 @@ defmodule LinkPreview.Requests do
   @moduledoc """
     Module providing functions to handle needed requests.
   """
-  use Tesla, docs: false, only: ~w(get head)a
-
   alias LinkPreview.Processor
 
-  adapter(Tesla.Adapter.Httpc, body_format: :binary)
-  plug(Tesla.Middleware.BaseUrl, "http://")
-  plug(Tesla.Middleware.DecompressResponse)
-  plug(Tesla.Middleware.FollowRedirects)
+  def get(url, opts \\ []), do: Tesla.get(client(), url, opts)
+  def head(url, opts \\ []), do: Tesla.head(client(), url, opts)
+
+  defp client do
+    adapter =
+      :tesla
+      |> Application.get_env(__MODULE__, [])
+      |> Keyword.get(:adapter, {Tesla.Adapter.Httpc, body_format: :binary})
+
+    Tesla.client(
+      [
+        {Tesla.Middleware.BaseUrl, "http://"},
+        {Tesla.Middleware.DecompressResponse, max_body_size: 32 * 1024 * 1024},
+        Tesla.Middleware.FollowRedirects
+      ],
+      adapter
+    )
+  end
 
   @doc """
     Check if given url leads to image.
@@ -23,7 +35,7 @@ defmodule LinkPreview.Requests do
       {:ok, %Tesla.Env{}} ->
         false
 
-      {:error, %Tesla.Error{}} ->
+      {:error, _reason} ->
         false
     end
   end

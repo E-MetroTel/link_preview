@@ -1,7 +1,6 @@
-use Mix.Config
+import Config
 
 config :httparrot,
   http_port: 8888,
-  https_port: 8484,
-  ssl: true,
+  ssl: false,
   unix_socket: false

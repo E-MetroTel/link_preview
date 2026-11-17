@@ -1,6 +1,7 @@
 {
   "skip_files": [
     "test/support",
+    "deps/",
     "lib/link_preview/parallel_helper.ex"
   ],
   "coverage_options": {

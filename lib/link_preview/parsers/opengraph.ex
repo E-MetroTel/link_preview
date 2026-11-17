@@ -11,13 +11,13 @@ defmodule LinkPreview.Parsers.Opengraph do
 
     Config options:
     * `:friendly_strings`\n
-      see `LinkPreview.Parsers.Basic.maybe_friendly_string/1` function\n
+      see `LinkPreview.Parsers.Util.maybe_friendly_string/1` function\n
       default: true
   """
-  def title(page, body) do
+  def title(%Page{} = page, body) do
     title =
       body
-      |> Floki.parse_document()
+      |> Floki.parse_document!()
       |> Floki.find("meta[property^=\"og:title\"]")
       |> Floki.attribute("content")
       |> List.first()
@@ -31,13 +31,13 @@ defmodule LinkPreview.Parsers.Opengraph do
 
     Config options:
     * `:friendly_strings`\n
-      see `LinkPreview.Parsers.Basic.maybe_friendly_string/1` function\n
+      see `LinkPreview.Parsers.Util.maybe_friendly_string/1` function\n
       default: true
   """
-  def description(page, body) do
+  def description(%Page{} = page, body) do
     description =
       body
-      |> Floki.parse_document()
+      |> Floki.parse_document!()
       |> Floki.find("meta[property^=\"og:description\"]")
       |> Floki.attribute("content")
       |> List.first()
@@ -61,16 +61,16 @@ defmodule LinkPreview.Parsers.Opengraph do
     WARNING: Using these options may reduce performance. To prevent very long processing time
     images limited to first 50 by design.
   """
-  def images(page, body) do
+  def images(%Page{} = page, body) do
     images =
       body
-      |> Floki.parse_document()
+      |> Floki.parse_document!()
       |> Floki.find("meta[property^=\"og:image\"]")
       |> Floki.attribute("content")
       |> Enum.map(&String.trim(&1))
       |> maybe_force_absolute_url(page)
-      |> maybe_force_url_schema
-      |> maybe_validate
+      |> maybe_force_url_schema()
+      |> maybe_validate()
       |> Enum.map(&%{url: &1})
 
     %Page{page | images: images}

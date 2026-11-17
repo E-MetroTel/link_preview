@@ -11,16 +11,16 @@ defmodule LinkPreview.Parsers.Html do
 
     Config options:
     * `:friendly_strings`\n
-      see `LinkPreview.Parsers.Basic.maybe_friendly_string/1` function\n
+      see `LinkPreview.Parsers.Util.maybe_friendly_string/1` function\n
       default: true
   """
-  def title(page, body) do
+  def title(%Page{} = page, body) do
     title =
       body
-      |> Floki.parse_document()
+      |> Floki.parse_document!()
       |> Floki.find("title")
       |> List.first()
-      |> get_text
+      |> get_text()
 
     %Page{page | title: title}
   end
@@ -32,10 +32,10 @@ defmodule LinkPreview.Parsers.Html do
 
     Config options:
     * `:friendly_strings`\n
-      see `LinkPreview.Parsers.Basic.maybe_friendly_string/1` function\n
+      see `LinkPreview.Parsers.Util.maybe_friendly_string/1` function\n
       default: true
   """
-  def description(page, body) do
+  def description(%Page{} = page, body) do
     description = search_h(body, 1)
 
     %Page{page | description: description}
@@ -63,17 +63,17 @@ defmodule LinkPreview.Parsers.Html do
     WARNING: Using these options may reduce performance. To prevent very long processing time
     images limited to first 50 by design.
   """
-  def images(page, body) do
+  def images(%Page{} = page, body) do
     images =
       body
-      |> Floki.parse_document()
+      |> Floki.parse_document!()
       |> Floki.attribute("img", "src")
       |> Enum.map(&String.trim(&1))
-      |> maybe_limit
+      |> maybe_limit()
       |> maybe_force_absolute_url(page)
-      |> maybe_force_url_schema
-      |> maybe_validate
-      |> maybe_filter_small_images
+      |> maybe_force_url_schema()
+      |> maybe_validate()
+      |> maybe_filter_small_images()
       |> Enum.map(&%{url: &1})
 
     %Page{page | images: images}
@@ -90,10 +90,10 @@ defmodule LinkPreview.Parsers.Html do
   defp search_h(body, level) do
     description =
       body
-      |> Floki.parse_document()
+      |> Floki.parse_document!()
       |> Floki.find("h#{level}")
       |> List.first()
-      |> get_text
+      |> get_text()
 
     case description do
       nil -> search_h(body, level + 1)

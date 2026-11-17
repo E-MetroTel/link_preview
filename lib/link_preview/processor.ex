@@ -27,8 +27,8 @@ defmodule LinkPreview.Processor do
       {:ok, _} ->
         %LinkPreview.Error{origin: LinkPreview, message: "unsupported response"}
 
-      {:error, %{__struct__: origin, message: message}} ->
-        %LinkPreview.Error{origin: origin, message: message}
+      {:error, reason} ->
+        %LinkPreview.Error{origin: Requests, message: inspect(reason)}
     end
     |> to_tuple()
   catch
@@ -43,13 +43,9 @@ defmodule LinkPreview.Processor do
   end
 
   def content_type?(env, type) do
-    case Tesla.get_headers(env, "content-type") do
-      headers when is_list(headers) ->
-        Enum.any?(headers, &(&1 =~ type))
-
-      _ ->
-        false
-    end
+    env
+    |> Tesla.get_headers("content-type")
+    |> Enum.any?(&(&1 =~ type))
   end
 
   defp to_tuple(result) do

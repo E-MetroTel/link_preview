@@ -2,65 +2,93 @@ defmodule LinkPreview.ProcessorTest do
   use LinkPreview.Case
   alias LinkPreview.Parsers.{Opengraph, Html}
 
-  import Mock
+  import Mox
 
-  describe "call when url leads to html" do
-    setup [:reset_defaults]
+  setup :verify_on_exit!
 
-    test "ignores missing parsers and returns Page" do
-      with_mock LinkPreview.Requests, [:passthrough],
-        get: fn _ -> {:ok, %Tesla.Env{status: 200, body: @opengraph}} end,
-        head: fn _ ->
-          {:ok, %Tesla.Env{status: 200, headers: [{"content-type", "text/html"}]}}
-        end do
-        Application.put_env(:link_preview, :parsers, [Opengraph, Html, MissingOne])
+  setup do
+    previous = Application.get_env(:tesla, LinkPreview.Requests)
+    Application.put_env(:tesla, LinkPreview.Requests, adapter: LinkPreview.TestAdapter)
+    previous_parsers = Application.fetch_env(:link_preview, :parsers)
 
-        assert {:ok, %LinkPreview.Page{}} = LinkPreview.Processor.call(@httparrot <> "/image")
-      end
-    end
-  end
-
-  describe "call when url leads to image" do
-    test "returns Page" do
-      assert {:ok, %LinkPreview.Page{}} = LinkPreview.Processor.call(@httparrot <> "/image")
-    end
-  end
-
-  describe "call when url leads to unsupported format" do
-    test "returns Error" do
-      assert {:error, %LinkPreview.Error{}} =
-               LinkPreview.Processor.call(@httparrot <> "/robots.txt")
-    end
-  end
-
-  describe "call when http client returns error on" do
-    test "head" do
-      with_mock LinkPreview.Requests, [:passthrough],
-        head: fn _ -> {:error, %Tesla.Error{reason: "adapter error: :econnrefused"}} end do
-        Application.put_env(:link_preview, :parsers, [Opengraph, Html, MissingOne])
-
-        assert {:error, %LinkPreview.Error{}} = LinkPreview.Processor.call(@httparrot <> "/image")
-      end
-    end
-
-    test "get" do
-      with_mock LinkPreview.Requests, [:passthrough],
-        get: fn _ -> {:error, %Tesla.Error{reason: "adapter error: :econnrefused"}} end,
-        head: fn _ ->
-          {:ok, %Tesla.Env{status: 200, headers: [{"content-type", "text/html"}]}}
-        end do
-        Application.put_env(:link_preview, :parsers, [Opengraph, Html, MissingOne])
-
-        assert {:error, %LinkPreview.Error{}} = LinkPreview.Processor.call(@httparrot <> "/image")
-      end
-    end
-  end
-
-  defp reset_defaults(opts) do
     on_exit(fn ->
-      Application.put_env(:link_preview, :parsers, nil)
+      if previous do
+        Application.put_env(:tesla, LinkPreview.Requests, previous)
+      else
+        Application.delete_env(:tesla, LinkPreview.Requests)
+      end
+
+      case previous_parsers do
+        {:ok, value} -> Application.put_env(:link_preview, :parsers, value)
+        :error -> Application.delete_env(:link_preview, :parsers)
+      end
     end)
 
-    {:ok, opts}
+    :ok
+  end
+
+  test "ignores missing parsers and returns parsed HTML" do
+    expect(LinkPreview.TestAdapter, :call, fn %{method: :head} = env, _ ->
+      {:ok, %{env | status: 200, headers: [{"content-type", "text/html"}]}}
+    end)
+
+    expect(LinkPreview.TestAdapter, :call, fn %{method: :get} = env, _ ->
+      {:ok, %{env | status: 200, body: @opengraph}}
+    end)
+
+    Application.put_env(:link_preview, :parsers, [Opengraph, Html, MissingOne])
+
+    assert {:ok, %LinkPreview.Page{title: "Opengraph Test Title"}} =
+             LinkPreview.Processor.call(@httparrot <> "/page")
+  end
+
+  test "image checks return false on transport errors" do
+    expect(LinkPreview.TestAdapter, :call, fn %{method: :head}, _ -> {:error, :timeout} end)
+    refute LinkPreview.Requests.image?(@httparrot <> "/image")
+  end
+
+  test "returns errors for non-success HTTP statuses" do
+    expect(LinkPreview.TestAdapter, :call, fn env, _ -> {:ok, %{env | status: 404}} end)
+
+    assert {:error, %LinkPreview.Error{message: "unsupported response"}} =
+             LinkPreview.Processor.call(@httparrot <> "/missing")
+  end
+
+  test "normalizes raised adapter errors" do
+    expect(LinkPreview.TestAdapter, :call, fn _, _ -> raise "adapter failure" end)
+
+    assert {:error, %LinkPreview.Error{origin: RuntimeError, message: "adapter failure"}} =
+             LinkPreview.Processor.call(@httparrot <> "/image")
+  end
+
+  test "normalizes Tesla errors carrying a reason" do
+    expect(LinkPreview.TestAdapter, :call, fn _, _ -> raise Tesla.Error, reason: :timeout end)
+
+    assert {:error, %LinkPreview.Error{origin: Tesla.Error, message: :timeout}} =
+             LinkPreview.Processor.call(@httparrot <> "/image")
+  end
+
+  test "normalizes adapter exits" do
+    expect(LinkPreview.TestAdapter, :call, fn _, _ -> exit(:timeout) end)
+
+    assert {:error, %LinkPreview.Error{origin: :unknown}} =
+             LinkPreview.Processor.call(@httparrot <> "/image")
+  end
+
+  test "returns an error for failed HEAD requests" do
+    expect(LinkPreview.TestAdapter, :call, fn %{method: :head}, _ -> {:error, :econnrefused} end)
+
+    assert {:error, %LinkPreview.Error{origin: LinkPreview.Requests, message: ":econnrefused"}} =
+             LinkPreview.Processor.call(@httparrot <> "/image")
+  end
+
+  test "returns an error for failed GET requests" do
+    expect(LinkPreview.TestAdapter, :call, fn %{method: :head} = env, _ ->
+      {:ok, %{env | status: 200, headers: [{"content-type", "text/html"}]}}
+    end)
+
+    expect(LinkPreview.TestAdapter, :call, fn %{method: :get}, _ -> {:error, :timeout} end)
+
+    assert {:error, %LinkPreview.Error{}} = LinkPreview.Processor.call(@httparrot <> "/page")
   end
 end
